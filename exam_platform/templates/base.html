@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}منصة الامتحانات{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+  {% if session.user_id %}
+  <nav class="navbar">
+    <div class="nav-brand">🎓 منصة الامتحانات</div>
+    <div class="nav-links">
+      <span class="nav-user">👤 {{ session.full_name }}</span>
+      {% if session.role == 'teacher' %}
+        <a href="{{ url_for('teacher_dashboard') }}">لوحة التحكم</a>
+      {% else %}
+        <a href="{{ url_for('student_dashboard') }}">امتحاناتي</a>
+      {% endif %}
+      <a href="{{ url_for('logout') }}" class="btn-logout">خروج</a>
+    </div>
+  </nav>
+  {% endif %}
+
+  <div class="container">
+    {% with msgs = get_flashed_messages(with_categories=true) %}
+      {% for cat, msg in msgs %}
+        <div class="alert alert-{{ cat }}">{{ msg }}</div>
+      {% endfor %}
+    {% endwith %}
+    {% block content %}{% endblock %}
+  </div>
+</body>
+</html>

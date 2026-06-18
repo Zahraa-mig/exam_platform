@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}تسجيل الدخول{% endblock %}
+{% block content %}
+<div class="login-wrapper">
+  <div class="login-card">
+    <div class="login-logo">🎓</div>
+    <h1>منصة الامتحانات</h1>
+    <p class="login-sub">سجّل دخولك للمتابعة</p>
+    <form method="POST">
+      <div class="form-group">
+        <label>اسم المستخدم</label>
+        <input type="text" name="username" required autofocus placeholder="أدخل اسم المستخدم">
+      </div>
+      <div class="form-group">
+        <label>كلمة المرور</label>
+        <input type="password" name="password" required placeholder="أدخل كلمة المرور">
+      </div>
+      <button type="submit" class="btn btn-primary btn-full">دخول</button>
+    </form>
+  </div>
+</div>
+{% endblock %}
