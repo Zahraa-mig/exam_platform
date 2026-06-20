@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>نتيجتك – {{ exam.title }}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <style>
+    .q-image {
+      margin: .6rem 0 .9rem;
+      border-radius: 8px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      display: inline-block;
+      max-width: 100%;
+    }
+    .q-image img {
+      display: block;
+      max-height: 240px;
+      max-width: 100%;
+      object-fit: contain;
+    }
+    .q-image figcaption {
+      font-size: .72rem;
+      color: var(--muted);
+      padding: .25rem .6rem;
+      background: var(--surface2);
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-brand">🎓 منصة الامتحانات</div>
+  <div class="nav-user">
+    <span>{{ session.full_name }}</span>
+    <a href="/student">← الامتحانات</a>
+  </div>
+</nav>
+
+<div class="container">
+  <div class="page-title">🏆 نتيجة <span>{{ exam.title }}</span></div>
+
+  {% set pct = (sub.score / sub.total * 100)|int if sub.total > 0 else 0 %}
+
+  <!-- Score hero -->
+  <div class="card" style="text-align:center;">
+    <div class="result-hero">
+      <div class="big-score">{{ sub.score }} / {{ sub.total }}</div>
+      <span class="badge {{ 'badge-green' if pct >= 50 else 'badge-red' }}"
+            style="font-size:1rem;padding:.4rem 1.2rem;">
+        {{ pct }}%
+      </span>
+      <div class="sub-text">
+        {% if pct >= 90 %}ممتاز 🎉
+        {% elif pct >= 75 %}جيد جداً 👍
+        {% elif pct >= 60 %}جيد
+        {% elif pct >= 50 %}مقبول
+        {% else %}راجع المادة مرة أخرى 📚
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Answer review -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">مراجعة الإجابات</span>
+      <span style="color:var(--muted);font-size:.85rem;">
+        ✅ {{ answers|selectattr('chosen','equalto', none)|list|length == 0
+              and answers|map(attribute='chosen')|list|length }} سؤال
+      </span>
+    </div>
+
+    {% for a in answers %}
+    {% set correct = (a.chosen == a.answer) %}
+    <div class="question-block" style="margin-bottom:1rem;">
+
+      <!-- Question header -->
+      <div class="q-num" style="display:flex;justify-content:space-between;align-items:center;">
+        <span>سؤال {{ loop.index }}</span>
+        {% if correct %}
+          <span style="color:var(--success);font-weight:600;">✓ صحيح</span>
+        {% else %}
+          <span style="color:var(--danger);font-weight:600;">✗ خطأ</span>
+        {% endif %}
+      </div>
+
+      <div class="q-text">{{ a.text }}</div>
+
+      <!-- Image (if any) -->
+      {% if a.image_path %}
+      <figure class="q-image">
+        <img src="{{ url_for('static', filename=a.image_path) }}"
+             alt="صورة السؤال {{ loop.index }}">
+        <figcaption>صورة توضيحية</figcaption>
+      </figure>
+      {% endif %}
+
+      <!-- Options with color feedback -->
+      <div class="options" style="margin-top:.5rem;">
+        {% for opt, label in [('a','أ'), ('b','ب'), ('c','ج'), ('d','د')] %}
+        {% set is_correct_opt = (opt == a.answer) %}
+        {% set is_chosen_opt  = (opt == a.chosen) %}
+        <div class="option-label
+          {% if is_correct_opt %} opt-correct
+          {% elif is_chosen_opt and not correct %} opt-wrong
+          {% endif %}"
+          style="cursor:default;">
+          <span style="color:var(--accent);font-weight:600;min-width:1.2rem;">{{ label }}</span>
+          <span>{{ a['option_' + opt] }}</span>
+          <span style="margin-right:auto;font-size:.78rem;">
+            {% if is_correct_opt %}
+              <span style="color:var(--success);">✓ الإجابة الصحيحة</span>
+            {% elif is_chosen_opt and not correct %}
+              <span style="color:var(--danger);">إجابتك</span>
+            {% endif %}
+          </span>
+        </div>
+        {% endfor %}
+      </div>
+
+    </div>
+    {% endfor %}
+  </div>
+
+  <div style="text-align:center;margin-top:1rem;margin-bottom:2rem;">
+    <a href="/student" class="btn btn-primary">العودة للامتحانات</a>
+  </div>
+</div>
+
+</body>
+</html>

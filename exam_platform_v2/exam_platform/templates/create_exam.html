@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>إنشاء امتحان جديد</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+<nav>
+  <div class="nav-brand">🎓 منصة الامتحانات</div>
+  <div class="nav-user">
+    <a href="/teacher">← لوحة التحكم</a>
+    <a href="/logout">خروج</a>
+  </div>
+</nav>
+
+<div class="container">
+  <div class="page-title">📝 إنشاء <span>امتحان جديد</span></div>
+
+  <!-- enctype مهم لرفع الصور -->
+  <form method="POST" action="/teacher/exams/create"
+        id="exam-form" enctype="multipart/form-data">
+
+    <div class="card">
+      <div class="card-header"><span class="card-title">معلومات الامتحان</span></div>
+      <div class="form-group">
+        <label>عنوان الامتحان *</label>
+        <input name="title" type="text"
+               placeholder="مثال: امتحان الفصل الأول – مادة الخوارزميات" required>
+      </div>
+      <div class="form-group">
+        <label>وصف (اختياري)</label>
+        <textarea name="description" rows="2"
+                  placeholder="ملاحظات أو تعليمات للطلاب..."></textarea>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">الأسئلة</span>
+        <button type="button" class="btn btn-ghost btn-sm" id="add-q-btn">
+          + إضافة سؤال
+        </button>
+      </div>
+      <div id="questions-container"></div>
+      <p id="no-q-msg" style="color:var(--muted);font-size:.9rem;text-align:center;padding:1rem;">
+        اضغط "إضافة سؤال" لإضافة أول سؤال
+      </p>
+    </div>
+
+    <div style="display:flex;gap:1rem;justify-content:flex-end;">
+      <a href="/teacher" class="btn btn-ghost">إلغاء</a>
+      <button type="submit" class="btn btn-success">💾 حفظ الامتحان</button>
+    </div>
+  </form>
+</div>
+
+<script src="{{ url_for('static', filename='js/exam_builder.js') }}"></script>
+</body>
+</html>

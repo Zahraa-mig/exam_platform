@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ exam.title }}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <style>
+    .q-image {
+      margin: .7rem 0 1rem;
+      border-radius: 8px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      display: inline-block;
+      max-width: 100%;
+    }
+    .q-image img {
+      display: block;
+      max-height: 320px;
+      max-width: 100%;
+      object-fit: contain;
+    }
+    .q-image figcaption {
+      font-size: .75rem;
+      color: var(--muted);
+      padding: .3rem .7rem;
+      background: var(--surface2);
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-brand">🎓 {{ exam.title }}</div>
+  <div class="nav-user">
+    <span>{{ session.full_name }}</span>
+    <a href="/logout">خروج</a>
+  </div>
+</nav>
+
+<div class="container">
+  <div class="page-title">📝 <span>{{ exam.title }}</span></div>
+
+  {% if exam.description %}
+  <div class="flash"
+       style="background:rgba(79,110,247,.1);border:1px solid rgba(79,110,247,.25);
+              color:var(--text);margin-bottom:1.5rem;">
+    📌 {{ exam.description }}
+  </div>
+  {% endif %}
+
+  <form method="POST" action="/student/exam/{{ exam.id }}" id="exam-form">
+
+    {% for q in questions %}
+    <div class="question-block">
+      <div class="q-num">سؤال {{ loop.index }} من {{ questions|length }}</div>
+      <div class="q-text">{{ q.text }}</div>
+
+      {% if q.image_path %}
+      <figure class="q-image">
+        <img src="{{ url_for('static', filename=q.image_path) }}"
+             alt="صورة السؤال {{ loop.index }}">
+        <figcaption>صورة توضيحية للسؤال</figcaption>
+      </figure>
+      {% endif %}
+
+      <div class="options">
+        {% for opt, label in [('a','أ'), ('b','ب'), ('c','ج'), ('d','د')] %}
+        <label class="option-label">
+          <input type="radio" name="q{{ q.id }}" value="{{ opt }}" required>
+          <span style="color:var(--accent);font-weight:600;min-width:1.2rem;">{{ label }}</span>
+          <span>{{ q['option_' + opt] }}</span>
+        </label>
+        {% endfor %}
+      </div>
+    </div>
+    {% endfor %}
+
+    <div style="display:flex;justify-content:center;margin-top:1.5rem;">
+      <button type="button" class="btn btn-success"
+              style="padding:.8rem 3rem;font-size:1rem;"
+              onclick="confirmSubmit()">
+        ✅ إرسال الامتحان
+      </button>
+    </div>
+  </form>
+</div>
+
+<script>
+function confirmSubmit() {
+  const names    = new Set([...document.querySelectorAll('input[type=radio]')].map(r => r.name));
+  const answered = [...names].filter(n => document.querySelector(`input[name="${n}"]:checked`));
+  const missing  = names.size - answered.length;
+  if (missing > 0) {
+    if (!confirm(`لم تجب على ${missing} سؤال بعد. هل تريد الإرسال على أي حال؟`)) return;
+  } else {
+    if (!confirm('هل أنت متأكد من إرسال الامتحان؟ لا يمكن التعديل بعد الإرسال.')) return;
+  }
+  document.getElementById('exam-form').submit();
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>لوحة تحكم الأستاذ</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+<nav>
+  <div class="nav-brand">🎓 منصة الامتحانات</div>
+  <div class="nav-user">
+    <span>مرحباً، {{ session.full_name }}</span>
+    <a href="/logout">خروج</a>
+  </div>
+</nav>
+
+<div class="container">
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for cat, msg in messages %}
+      <div class="flash flash-{{ cat }}">{{ msg }}</div>
+    {% endfor %}
+  {% endwith %}
+
+  <div class="page-title">🏫 لوحة <span>تحكم الأستاذ</span></div>
+
+  <!-- Stats -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="val">{{ students|length }}</div>
+      <div class="lbl">الطلاب المسجلون</div>
+    </div>
+    <div class="stat-card">
+      <div class="val">{{ exams|length }}</div>
+      <div class="lbl">الامتحانات</div>
+    </div>
+    <div class="stat-card">
+      <div class="val">{{ exams|selectattr('is_active','equalto',1)|list|length }}</div>
+      <div class="lbl">امتحانات نشطة</div>
+    </div>
+  </div>
+
+  <!-- ── STUDENTS ── -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">👥 الطلاب</span>
+      <button class="btn btn-primary btn-sm" onclick="document.getElementById('modal-student').classList.add('open')">
+        + إضافة طالب
+      </button>
+    </div>
+    {% if students %}
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>الاسم الكامل</th>
+          <th>اسم المستخدم</th>
+          <th>إجراءات</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for s in students %}
+        <tr>
+          <td>{{ loop.index }}</td>
+          <td>{{ s.full_name }}</td>
+          <td><code style="color:var(--accent)">{{ s.username }}</code></td>
+          <td>
+            <form method="POST" action="/teacher/students/delete/{{ s.id }}" style="display:inline"
+                  onsubmit="return confirm('حذف هذا الطالب؟')">
+              <button class="btn btn-danger btn-sm">حذف</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="empty">لا يوجد طلاب مسجلون بعد</div>
+    {% endif %}
+  </div>
+
+  <!-- ── EXAMS ── -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">📋 الامتحانات</span>
+      <a href="/teacher/exams/create" class="btn btn-success btn-sm">+ إنشاء امتحان</a>
+    </div>
+    {% if exams %}
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>العنوان</th>
+          <th>الحالة</th>
+          <th>تاريخ الإنشاء</th>
+          <th>إجراءات</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for e in exams %}
+        <tr>
+          <td>{{ loop.index }}</td>
+          <td>{{ e.title }}</td>
+          <td>
+            {% if e.is_active %}
+              <span class="badge badge-green">نشط</span>
+            {% else %}
+              <span class="badge badge-red">مخفي</span>
+            {% endif %}
+          </td>
+          <td style="color:var(--muted); font-size:.85rem;">{{ e.created_at[:16] }}</td>
+          <td style="display:flex; gap:.4rem; flex-wrap:wrap;">
+            <a href="/teacher/exams/{{ e.id }}/results" class="btn btn-ghost btn-sm">النتائج</a>
+            <a href="/teacher/exams/{{ e.id }}/edit"    class="btn btn-primary btn-sm">تعديل</a>
+            <form method="POST" action="/teacher/exams/{{ e.id }}/toggle" style="display:inline">
+              <button class="btn btn-warn btn-sm">
+                {{ 'إخفاء' if e.is_active else 'إظهار' }}
+              </button>
+            </form>
+            <form method="POST" action="/teacher/exams/{{ e.id }}/delete" style="display:inline"
+                  onsubmit="return confirm('حذف هذا الامتحان نهائياً؟')">
+              <button class="btn btn-danger btn-sm">حذف</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="empty">لا توجد امتحانات بعد – أنشئ أول امتحان الآن</div>
+    {% endif %}
+  </div>
+
+</div>
+
+<!-- MODAL: Add Student -->
+<div class="modal-overlay" id="modal-student">
+  <div class="modal">
+    <h3>➕ إضافة طالب جديد</h3>
+    <form method="POST" action="/teacher/students/create">
+      <div class="form-group">
+        <label>الاسم الكامل</label>
+        <input name="full_name" type="text" placeholder="مثال: محمد أحمد" required>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>اسم المستخدم</label>
+          <input name="username" type="text" placeholder="مثال: student01" required>
+        </div>
+        <div class="form-group">
+          <label>كلمة المرور <span style="color:var(--muted);font-size:.8rem">(اتركها فارغة لتوليد تلقائي)</span></label>
+          <input name="password" type="text" placeholder="اختياري">
+        </div>
+      </div>
+      <div style="display:flex; gap:.8rem; justify-content:flex-end; margin-top:.5rem;">
+        <button type="button" class="btn btn-ghost"
+                onclick="document.getElementById('modal-student').classList.remove('open')">إلغاء</button>
+        <button type="submit" class="btn btn-primary">إنشاء الحساب</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+// Close modal on overlay click
+document.getElementById('modal-student').addEventListener('click', function(e){
+  if(e.target === this) this.classList.remove('open');
+});
+</script>
+</body>
+</html>

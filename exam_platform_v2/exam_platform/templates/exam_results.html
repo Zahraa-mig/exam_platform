@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>نتائج الامتحان</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+<nav>
+  <div class="nav-brand">🎓 منصة الامتحانات</div>
+  <div class="nav-user">
+    <a href="/teacher">← لوحة التحكم</a>
+    <a href="/logout">خروج</a>
+  </div>
+</nav>
+
+<div class="container">
+  <div class="page-title">📊 نتائج <span>{{ exam.title }}</span></div>
+
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">نتائج الطلاب</span>
+      <span style="color:var(--muted); font-size:.88rem;">{{ results|length }} طالب قدّم</span>
+    </div>
+
+    {% if results %}
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>الاسم</th>
+          <th>المستخدم</th>
+          <th>النتيجة</th>
+          <th>النسبة</th>
+          <th>وقت التقديم</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in results %}
+        {% set pct = (r.score / r.total * 100)|int if r.total > 0 else 0 %}
+        <tr>
+          <td>{{ loop.index }}</td>
+          <td>{{ r.full_name }}</td>
+          <td style="color:var(--accent)">{{ r.username }}</td>
+          <td><strong>{{ r.score }} / {{ r.total }}</strong></td>
+          <td>
+            <span class="badge {{ 'badge-green' if pct >= 50 else 'badge-red' }}">
+              {{ pct }}%
+            </span>
+          </td>
+          <td style="color:var(--muted); font-size:.85rem;">{{ r.submitted_at[:16] }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="empty">لم يقدّم أي طالب هذا الامتحان بعد</div>
+    {% endif %}
+  </div>
+</div>
+</body>
+</html>
