@@ -75,8 +75,8 @@ def init_db():
         """)
         cols = [r[1] for r in conn.execute("PRAGMA table_info(questions)").fetchall()]
         if 'marks' not in cols:
-        conn.execute("ALTER TABLE questions ADD COLUMN marks INTEGER DEFAULT 1")
-        conn.commit()
+            conn.execute("ALTER TABLE questions ADD COLUMN marks INTEGER DEFAULT 1")
+            conn.commit()
         
         # migrate: add image_path if missing (for existing DBs)
         cols = [r[1] for r in conn.execute("PRAGMA table_info(questions)").fetchall()]
