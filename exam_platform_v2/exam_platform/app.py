@@ -395,7 +395,9 @@ def exam_result(eid):
     return render_template('exam_result.html', exam=exam, sub=sub, answers=answers)
 
 # ─────────────────────────────────────────────
+# لازم تشتغل هذه الأسطر دائمًا (حتى مع gunicorn)، مش بس عند التشغيل المباشر
+os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
+init_db()
+
 if __name__ == '__main__':
-    os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
-    init_db()
     app.run(debug=True)
