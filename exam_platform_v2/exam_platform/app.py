@@ -49,6 +49,7 @@ def init_db():
             option_d   TEXT NOT NULL,
             answer     TEXT NOT NULL CHECK(answer IN ('a','b','c','d')),
             image_path TEXT DEFAULT NULL,
+            marks      INTEGER DEFAULT 1,
             FOREIGN KEY(exam_id) REFERENCES exams(id) ON DELETE CASCADE
         );
 
@@ -72,6 +73,11 @@ def init_db():
             FOREIGN KEY(submission_id) REFERENCES submissions(id)
         );
         """)
+        cols = [r[1] for r in conn.execute("PRAGMA table_info(questions)").fetchall()]
+        if 'marks' not in cols:
+        conn.execute("ALTER TABLE questions ADD COLUMN marks INTEGER DEFAULT 1")
+        conn.commit()
+        
         # migrate: add image_path if missing (for existing DBs)
         cols = [r[1] for r in conn.execute("PRAGMA table_info(questions)").fetchall()]
         if 'image_path' not in cols:
@@ -220,12 +226,14 @@ def _parse_questions(form, files, eid, db):
         d    = form.get(f'q{i}_d','').strip()
         ans  = form.get(f'q{i}_answer','').strip()
         img  = save_image(files.get(f'q{i}_image'), prefix=f'q{eid}_{i}')
+        img   = save_image(files.get(f'q{i}_image'), prefix=f'q{eid}_{i}')
+        marks = int(form.get(f'q{i}_marks', 1) or 1)
         if text and a and b and c and d and ans in ('a','b','c','d'):
             db.execute(
                 "INSERT INTO questions "
-                "(exam_id,text,option_a,option_b,option_c,option_d,answer,image_path) "
-                "VALUES (?,?,?,?,?,?,?,?)",
-                (eid, text, a, b, c, d, ans, img)
+                "(exam_id,text,option_a,option_b,option_c,option_d,answer,image_path,marks) "
+                "VALUES (?,?,?,?,?,?,?,?,?)",
+                (eid, text, a, b, c, d, ans, img, marks)
             )
         i += 1
 
@@ -342,13 +350,14 @@ def take_exam(eid):
             score   = 0
             sub_cur = db.execute(
                 "INSERT INTO submissions (student_id,exam_id,score,total) VALUES (?,?,0,?)",
-                (sid, eid, len(questions))
+                (sid, eid, sum(q['marks'] for q in questions))
+                
             )
             sub_id = sub_cur.lastrowid
             for q in questions:
                 chosen = request.form.get(f'q{q["id"]}', '')
                 if chosen == q['answer']:
-                    score += 1
+                score += q['marks']
                 db.execute(
                     "INSERT INTO answers (submission_id,question_id,chosen) VALUES (?,?,?)",
                     (sub_id, q['id'], chosen)
