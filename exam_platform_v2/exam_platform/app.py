@@ -4,7 +4,7 @@ import sqlite3, hashlib, os, random, string
 from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
-app.secret_key = "exam_platform_secret_2024")
+app.secret_key = "exam_platform_secret_2024"  
 
 DB_PATH = os.environ.get('DB_PATH', os.path.join(os.path.dirname(__file__), 'instance', 'platform.db'))
 UPLOAD_DIR  = os.path.join(os.path.dirname(__file__), 'static', 'uploads')
@@ -73,13 +73,13 @@ def init_db():
             FOREIGN KEY(submission_id) REFERENCES submissions(id)
         );
         """)
+        
+        # فحص وإضافة الأعمدة بشكل مضمون لمنع الـ OperationalError
         cols = [r[1] for r in conn.execute("PRAGMA table_info(questions)").fetchall()]
         if 'marks' not in cols:
             conn.execute("ALTER TABLE questions ADD COLUMN marks INTEGER DEFAULT 1")
             conn.commit()
         
-        # migrate: add image_path if missing (for existing DBs)
-        cols = [r[1] for r in conn.execute("PRAGMA table_info(questions)").fetchall()]
         if 'image_path' not in cols:
             conn.execute("ALTER TABLE questions ADD COLUMN image_path TEXT DEFAULT NULL")
             conn.commit()
@@ -110,7 +110,7 @@ def save_image(file_obj, prefix='img'):
     ext      = file_obj.filename.rsplit('.', 1)[1].lower()
     fname    = f"{prefix}_{random.randint(100000,999999)}.{ext}"
     file_obj.save(os.path.join(UPLOAD_DIR, fname))
-    return f"uploads/{fname}"   # relative to static/
+    return f"uploads/{fname}"
 
 # ─────────────────────────────────────────────
 # AUTH DECORATORS
@@ -226,7 +226,12 @@ def _parse_questions(form, files, eid, db):
         d    = form.get(f'q{i}_d','').strip()
         ans  = form.get(f'q{i}_answer','').strip()
         img  = save_image(files.get(f'q{i}_image'), prefix=f'q{eid}_{i}')
-        marks = int(form.get(f'q{i}_marks', 1) or 1)
+        
+        try:
+            marks = int(form.get(f'q{i}_marks', 1) or 1)
+        except (ValueError, TypeError):
+            marks = 1
+
         if text and a and b and c and d and ans in ('a','b','c','d'):
             db.execute(
                 "INSERT INTO questions "
@@ -266,9 +271,9 @@ def edit_exam(eid):
             title = request.form.get('title','').strip()
             desc  = request.form.get('description','').strip()
             db.execute("UPDATE exams SET title=?,description=? WHERE id=?", (title, desc, eid))
-            # delete old images from disk
+            
             for q in questions:
-                if q['image_path']:
+                if q['image_path'] and q['image_path'].strip():
                     old = os.path.join(app.static_folder, q['image_path'])
                     if os.path.exists(old):
                         os.remove(old)
@@ -350,14 +355,12 @@ def take_exam(eid):
             sub_cur = db.execute(
                 "INSERT INTO submissions (student_id,exam_id,score,total) VALUES (?,?,0,?)",
                 (sid, eid, sum(q['marks'] for q in questions))
-                
             )
             sub_id = sub_cur.lastrowid
             for q in questions:
                 chosen = request.form.get(f'q{q["id"]}', '')
                 if chosen == q['answer']:
                     score += q['marks']
-                
                 
                 db.execute(
                     "INSERT INTO answers (submission_id,question_id,chosen) VALUES (?,?,?)",
