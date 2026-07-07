@@ -4,9 +4,9 @@ import sqlite3, hashlib, os, random, string
 from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
-app.secret_key = os.urandom(24)
+app.secret_key = "exam_platform_secret_2024")
 
-DB_PATH     = os.path.join(os.path.dirname(__file__), 'instance', 'platform.db')
+DB_PATH = os.environ.get('DB_PATH', os.path.join(os.path.dirname(__file__), 'instance', 'platform.db'))
 UPLOAD_DIR  = os.path.join(os.path.dirname(__file__), 'static', 'uploads')
 ALLOWED_EXT = {'png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'}
 
