@@ -53,6 +53,18 @@ function addQuestion(data = {}) {
                     border-radius:6px;padding:.6rem .9rem;color:var(--text);
                     font-family:inherit;font-size:.95rem;" required>
     </div>
+    <!-- Marks -->
+    <div style="margin-bottom:.9rem; display:flex; align-items:center; gap:.8rem;">
+      <label style="font-size:.8rem;color:var(--muted);white-space:nowrap;">
+        ⭐ علامة السؤال:
+      </label>
+      <input type="number" name="q${n}_marks"
+             value="${data.marks || 1}" min="1" max="100"
+             style="width:80px;background:var(--bg);border:1px solid var(--border);
+                    border-radius:6px;padding:.4rem .6rem;color:var(--text);
+                    font-family:inherit;text-align:center;">
+      <span style="font-size:.8rem;color:var(--muted);">درجة</span>
+    </div>
 
     <!-- Image upload -->
     <div style="margin-bottom:.9rem;">
