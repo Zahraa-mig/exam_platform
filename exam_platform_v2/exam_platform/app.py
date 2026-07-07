@@ -358,10 +358,12 @@ def take_exam(eid):
                 chosen = request.form.get(f'q{q["id"]}', '')
                 if chosen == q['answer']:
                     score += q['marks']
-                 db.execute(
-                "INSERT INTO answers (submission_id,question_id,chosen) VALUES (?,?,?)",
-                 (sub_id, q['id'], chosen)
-                 )
+                
+                
+                db.execute(
+                    "INSERT INTO answers (submission_id,question_id,chosen) VALUES (?,?,?)",
+                    (sub_id, q['id'], chosen)
+                )
             db.execute("UPDATE submissions SET score=? WHERE id=?", (score, sub_id))
             db.commit()
             return redirect(url_for('exam_result', eid=eid))
