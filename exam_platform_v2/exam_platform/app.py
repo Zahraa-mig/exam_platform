@@ -226,7 +226,6 @@ def _parse_questions(form, files, eid, db):
         d    = form.get(f'q{i}_d','').strip()
         ans  = form.get(f'q{i}_answer','').strip()
         img  = save_image(files.get(f'q{i}_image'), prefix=f'q{eid}_{i}')
-        img   = save_image(files.get(f'q{i}_image'), prefix=f'q{eid}_{i}')
         marks = int(form.get(f'q{i}_marks', 1) or 1)
         if text and a and b and c and d and ans in ('a','b','c','d'):
             db.execute(
