@@ -65,7 +65,8 @@ window.EXISTING_QUESTIONS = [
     c:          {{ q.option_c   | tojson }},
     d:          {{ q.option_d   | tojson }},
     answer:     {{ q.answer     | tojson }},
-    image_path: {{ (q.image_path or '') | tojson }}
+    image_path: {{ (q.image_path or '') | tojson }},
+    marks:      {{ q.marks or 1 }}
   }{% if not loop.last %},{% endif %}
   {% endfor %}
 ];
