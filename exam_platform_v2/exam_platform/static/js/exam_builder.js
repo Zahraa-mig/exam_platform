@@ -107,7 +107,13 @@ function removeQuestion(btn) {
     noMsg.style.display = 'block';
 }
 
-addBtn.addEventListener('click', () => addQuestion());
+addBtn.addEventListener('click', () => {
+  addQuestion();
+  // scroll to bottom smoothly
+  setTimeout(() => {
+    window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+  }, 100);
+});
 
 // Preload for edit mode
 if (window.EXISTING_QUESTIONS && EXISTING_QUESTIONS.length)
