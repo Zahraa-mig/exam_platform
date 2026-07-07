@@ -109,11 +109,20 @@ function removeQuestion(btn) {
 
 addBtn.addEventListener('click', () => {
   addQuestion();
-  // scroll to bottom smoothly
   setTimeout(() => {
     window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
   }, 100);
 });
+
+const addBtnBottom = document.getElementById('add-q-btn-bottom');
+if (addBtnBottom) {
+  addBtnBottom.addEventListener('click', () => {
+    addQuestion();
+    setTimeout(() => {
+      window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+    }, 100);
+  });
+}
 
 // Preload for edit mode
 if (window.EXISTING_QUESTIONS && EXISTING_QUESTIONS.length)
