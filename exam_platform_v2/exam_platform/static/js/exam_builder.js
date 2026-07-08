@@ -32,6 +32,7 @@ function addQuestion(data = {}) {
          <p style="font-size:.75rem;color:var(--muted);margin-top:.3rem;">
            الصورة الحالية – ارفع صورة جديدة للاستبدال أو اتركها كما هي
          </p>
+         <input type="hidden" name="q${n}_existing_image" value="${data.image_path}">
        </div>`
     : `<div id="preview-wrap-${n}"></div>`;
 
