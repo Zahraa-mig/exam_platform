@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, session, flash, send_file
+from flask import Flask, render_template, request, redirect, url_for, session, flash, send_file, send_from_directory
 from functools import wraps
 import sqlite3, hashlib, os, random, string
 from werkzeug.utils import secure_filename
@@ -7,7 +7,10 @@ app = Flask(__name__)
 app.secret_key = "exam_platform_secret_2024"  
 
 DB_PATH = os.environ.get('DB_PATH', os.path.join(os.path.dirname(__file__), 'instance', 'platform.db'))
-UPLOAD_DIR  = os.path.join(os.path.dirname(__file__), 'static', 'uploads')
+# مهم: مجلد الصور لازم يكون بنفس المكان الدائم يلي فيه قاعدة البيانات (/data على Railway)
+# حتى لا تختفي الصور المرفقة مع الأسئلة بعد أي Redeploy أو Restart
+UPLOAD_BASE = os.path.dirname(DB_PATH)
+UPLOAD_DIR  = os.path.join(UPLOAD_BASE, 'uploads')
 ALLOWED_EXT = {'png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'}
 
 os.makedirs(UPLOAD_DIR, exist_ok=True)
@@ -110,7 +113,12 @@ def save_image(file_obj, prefix='img'):
     ext      = file_obj.filename.rsplit('.', 1)[1].lower()
     fname    = f"{prefix}_{random.randint(100000,999999)}.{ext}"
     file_obj.save(os.path.join(UPLOAD_DIR, fname))
-    return f"uploads/{fname}"
+    return fname
+
+@app.route('/uploads/<path:filename>')
+def serve_upload(filename):
+    """يقدّم صور الأسئلة من المجلد الدائم (/data/uploads) بدل مجلد static العادي."""
+    return send_from_directory(UPLOAD_DIR, filename)
 
 # ─────────────────────────────────────────────
 # AUTH DECORATORS
@@ -301,7 +309,7 @@ def edit_exam(eid):
 
             for q in questions:
                 if q['image_path'] and q['image_path'].strip():
-                    old = os.path.join(app.static_folder, q['image_path'])
+                    old = os.path.join(UPLOAD_DIR, q['image_path'])
                     if os.path.exists(old):
                         os.remove(old)
             db.execute("DELETE FROM questions WHERE exam_id=?", (eid,))
@@ -328,7 +336,7 @@ def delete_exam(eid):
         qs = db.execute("SELECT image_path FROM questions WHERE exam_id=?", (eid,)).fetchall()
         for q in qs:
             if q['image_path']:
-                p = os.path.join(app.static_folder, q['image_path'])
+                p = os.path.join(UPLOAD_DIR, q['image_path'])
                 if os.path.exists(p):
                     os.remove(p)
         db.execute("DELETE FROM exams WHERE id=?", (eid,))
@@ -351,13 +359,26 @@ def exam_results(eid):
 @app.route('/teacher/backup')
 @teacher_required
 def download_backup():
-    """يسمح للأستاذ بتحميل نسخة احتياطية من قاعدة البيانات كاملة."""
+    """يسمح للأستاذ بتحميل نسخة احتياطية كاملة: قاعدة البيانات + كل صور الأسئلة، بملف zip واحد."""
+    import zipfile, io
     from datetime import datetime
     stamp = datetime.now().strftime('%Y-%m-%d_%H-%M')
+
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, 'w', zipfile.ZIP_DEFLATED) as zf:
+        zf.write(DB_PATH, arcname='platform.db')
+        if os.path.isdir(UPLOAD_DIR):
+            for fname in os.listdir(UPLOAD_DIR):
+                fpath = os.path.join(UPLOAD_DIR, fname)
+                if os.path.isfile(fpath):
+                    zf.write(fpath, arcname=f'uploads/{fname}')
+    buf.seek(0)
+
     return send_file(
-        DB_PATH,
+        buf,
         as_attachment=True,
-        download_name=f'exam_platform_backup_{stamp}.db'
+        download_name=f'exam_platform_backup_{stamp}.zip',
+        mimetype='application/zip'
     )
 
 # ─────────────────────────────────────────────
