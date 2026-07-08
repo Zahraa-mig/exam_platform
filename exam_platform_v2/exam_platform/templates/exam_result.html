@@ -92,7 +92,7 @@
       <!-- Image (if any) -->
       {% if a.image_path %}
       <figure class="q-image">
-  <img src="{{ url_for('static', filename=a.image_path) }}"
+  <img src="{{ url_for('serve_upload', filename=a.image_path) }}"
        alt="صورة السؤال {{ loop.index }}"
        onclick="openLightbox(this.src)"
        style="cursor:zoom-in;">
