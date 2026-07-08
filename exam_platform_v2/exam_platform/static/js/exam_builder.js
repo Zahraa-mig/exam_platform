@@ -27,7 +27,7 @@ function addQuestion(data = {}) {
   // show existing image preview if editing
   const existingImg = data.image_path
     ? `<div id="preview-wrap-${n}" style="margin-top:.5rem;">
-         <img src="/static/${data.image_path}" alt="صورة السؤال"
+         <img src="/uploads/${data.image_path}" alt="صورة السؤال"
               style="max-height:160px;border-radius:6px;border:1px solid var(--border);">
          <p style="font-size:.75rem;color:var(--muted);margin-top:.3rem;">
            الصورة الحالية – ارفع صورة جديدة للاستبدال أو اتركها كما هي
