@@ -237,7 +237,14 @@ def _collect_questions(form, files, eid):
         c    = form.get(f'q{i}_c','').strip()
         d    = form.get(f'q{i}_d','').strip()
         ans  = form.get(f'q{i}_answer','').strip()
-        img  = save_image(files.get(f'q{i}_image'), prefix=f'q{eid}_{i}')
+
+        uploaded = files.get(f'q{i}_image')
+        if uploaded and uploaded.filename:
+            # المعلم رفع صورة جديدة لهذا السؤال → نستخدمها
+            img = save_image(uploaded, prefix=f'q{eid}_{i}')
+        else:
+            # ما في صورة جديدة → نحافظ على الصورة القديمة (إن وجدت) بدل ما نفقدها
+            img = form.get(f'q{i}_existing_image','').strip() or None
 
         try:
             marks = int(form.get(f'q{i}_marks', 1) or 1)
@@ -307,11 +314,15 @@ def edit_exam(eid):
 
             db.execute("UPDATE exams SET title=?,description=? WHERE id=?", (title, desc, eid))
 
+            # نمسح بس صور الأسئلة يلي فعلاً استُبدلت أو حُذفت،
+            # مش كل الصور القديمة زي ما كان يصير سابقًا
+            new_image_paths = {row[7] for row in rows if row[7]}
             for q in questions:
-                if q['image_path'] and q['image_path'].strip():
+                if q['image_path'] and q['image_path'].strip() and q['image_path'] not in new_image_paths:
                     old = os.path.join(UPLOAD_DIR, q['image_path'])
                     if os.path.exists(old):
                         os.remove(old)
+
             db.execute("DELETE FROM questions WHERE exam_id=?", (eid,))
             _insert_questions(db, rows)
             db.commit()
