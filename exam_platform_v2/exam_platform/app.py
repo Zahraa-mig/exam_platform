@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, session, flash
+from flask import Flask, render_template, request, redirect, url_for, session, flash, send_file
 from functools import wraps
 import sqlite3, hashlib, os, random, string
 from werkzeug.utils import secure_filename
@@ -215,8 +215,12 @@ def delete_student(sid):
     return redirect(url_for('teacher_dashboard'))
 
 # ── Exams ──
-def _parse_questions(form, files, eid, db):
-    """Insert questions (with optional images) for a given exam id."""
+def _collect_questions(form, files, eid):
+    """
+    يقرأ الأسئلة من الفورم ويرجعها كقائمة، بدون ما يلمس قاعدة البيانات.
+    إذا في سؤال ناقص حقوله، بيرجع رقمه بقائمة الأخطاء بدل ما يتجاهله بصمت.
+    """
+    rows, errors = [], []
     i = 1
     while f'q{i}_text' in form:
         text = form.get(f'q{i}_text','').strip()
@@ -226,20 +230,28 @@ def _parse_questions(form, files, eid, db):
         d    = form.get(f'q{i}_d','').strip()
         ans  = form.get(f'q{i}_answer','').strip()
         img  = save_image(files.get(f'q{i}_image'), prefix=f'q{eid}_{i}')
-        
+
         try:
             marks = int(form.get(f'q{i}_marks', 1) or 1)
         except (ValueError, TypeError):
             marks = 1
 
         if text and a and b and c and d and ans in ('a','b','c','d'):
-            db.execute(
-                "INSERT INTO questions "
-                "(exam_id,text,option_a,option_b,option_c,option_d,answer,image_path,marks) "
-                "VALUES (?,?,?,?,?,?,?,?,?)",
-                (eid, text, a, b, c, d, ans, img, marks)
-            )
+            rows.append((eid, text, a, b, c, d, ans, img, marks))
+        else:
+            errors.append(i)
         i += 1
+    return rows, errors
+
+
+def _insert_questions(db, rows):
+    for row in rows:
+        db.execute(
+            "INSERT INTO questions "
+            "(exam_id,text,option_a,option_b,option_c,option_d,answer,image_path,marks) "
+            "VALUES (?,?,?,?,?,?,?,?,?)",
+            row
+        )
 
 @app.route('/teacher/exams/create', methods=['GET','POST'])
 @teacher_required
@@ -253,8 +265,11 @@ def create_exam():
         with get_db() as db:
             cur = db.execute("INSERT INTO exams (title,description) VALUES (?,?)", (title, desc))
             eid = cur.lastrowid
-            _parse_questions(request.form, request.files, eid, db)
+            rows, errors = _collect_questions(request.form, request.files, eid)
+            _insert_questions(db, rows)
             db.commit()
+        if errors:
+            flash(f'تنبيه: السؤال رقم {", ".join(map(str, errors))} لم يُحفظ لأن بعض حقوله ناقصة (تأكد من تعبئة كل الخيارات واختيار إجابة صحيحة)', 'error')
         flash('تم إنشاء الامتحان بنجاح', 'success')
         return redirect(url_for('teacher_dashboard'))
     return render_template('create_exam.html')
@@ -270,15 +285,27 @@ def edit_exam(eid):
         if request.method == 'POST':
             title = request.form.get('title','').strip()
             desc  = request.form.get('description','').strip()
+
+            # مهم: نقرأ ونتحقق من الأسئلة الجديدة قبل ما نمسح القديمة
+            rows, errors = _collect_questions(request.form, request.files, eid)
+            if errors:
+                flash(
+                    f'لم يتم حفظ التعديلات: السؤال رقم {", ".join(map(str, errors))} '
+                    'غير مكتمل (تأكد من تعبئة كل الخيارات واختيار الإجابة الصحيحة). '
+                    'لم يتم حذف أي بيانات قديمة.',
+                    'error'
+                )
+                return redirect(url_for('edit_exam', eid=eid))
+
             db.execute("UPDATE exams SET title=?,description=? WHERE id=?", (title, desc, eid))
-            
+
             for q in questions:
                 if q['image_path'] and q['image_path'].strip():
                     old = os.path.join(app.static_folder, q['image_path'])
                     if os.path.exists(old):
                         os.remove(old)
             db.execute("DELETE FROM questions WHERE exam_id=?", (eid,))
-            _parse_questions(request.form, request.files, eid, db)
+            _insert_questions(db, rows)
             db.commit()
             flash('تم تحديث الامتحان', 'success')
             return redirect(url_for('teacher_dashboard'))
@@ -320,6 +347,18 @@ def exam_results(eid):
             WHERE s.exam_id=? ORDER BY s.submitted_at DESC
         """, (eid,)).fetchall()
     return render_template('exam_results.html', exam=exam, results=results)
+
+@app.route('/teacher/backup')
+@teacher_required
+def download_backup():
+    """يسمح للأستاذ بتحميل نسخة احتياطية من قاعدة البيانات كاملة."""
+    from datetime import datetime
+    stamp = datetime.now().strftime('%Y-%m-%d_%H-%M')
+    return send_file(
+        DB_PATH,
+        as_attachment=True,
+        download_name=f'exam_platform_backup_{stamp}.db'
+    )
 
 # ─────────────────────────────────────────────
 # STUDENT ROUTES
